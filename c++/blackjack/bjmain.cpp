@@ -4,17 +4,20 @@ using namespace std;
 
 int numdecks = 6;
 
+void dealer(int oldtotal, int oldsofttotal, int numcards, double probability, int deck[], double dealerprob[]);
+
 int main() {
     int i;
     int deck[11];
     double dealerprob[7];
-    for (i = 1; i <= 9; i++)
+    for (i = 1; i <= 9; i++) {
         deck[i] = 4 * numdecks;
+    }
     deck[10] = 16 * numdecks;
     deck[0] = 52 * numdecks;
     dealer(5, 0, 1, 1.0, deck, dealerprob);
     for (i = 0; i <= 6; i++) {
-        cout << i << ": " << dealerprob[i] << "\n" <<endl;
+        cerr << i << "\t" << dealerprob[i] << endl;
     }
 }
 
@@ -29,7 +32,9 @@ void dealer(int oldtotal, int oldsofttotal, int numcards, double probability, in
             dealerprob[i] = 0.0;
     }
     for (nextcard = 1; nextcard <= 10; nextcard++) {
-        probability *= ((double)deck[nextcard] / (double)deck[0]);
+        if (deck[nextcard] == 0) continue;  // Skip if no cards left
+        
+        double newProbability = probability * ((double)deck[nextcard] / (double)deck[0]);
         deck[nextcard]--;
         deck[0]--;
         newtotal = oldtotal + nextcard;
@@ -37,21 +42,24 @@ void dealer(int oldtotal, int oldsofttotal, int numcards, double probability, in
         if (nextcard == 1) {
             newace++;
         }
-        if ((numcards == 2) &&  (newtotal == 11) && (newace == 1)) {
-            // dealer has blackjack or natural 21
-            dealerprob[5] += probability;
-        } else if (newtotal > 21) {
+        // calculate best total for dealer hand with aces counting as 1 or 11
+        int besttotal = newtotal;
+        if (newace >= 1 && newtotal <= 11) {
+            // count an ace as 11 instead of 1 if it doesn't cause a bust
+            besttotal = newtotal + 10;
+        }
+        if ((numcards == 2) && (besttotal == 21)) {
+            // dealer has blackjack (two-card 21)
+            dealerprob[5] += newProbability;
+        } else if (besttotal > 21) {
             // dealer busts
-            dealerprob[6] += probability;
-        } else if (newtotal >= 17) {
-            // dealer has hard 17 or more
-            dealerprob[newtotal - 17] += probability;
-        } else if (newtotal >= 7 && newtotal <= 11 && newace >= 1) {
+            dealerprob[6] += newProbability;
+        } else if (besttotal >= 17) {
             // dealer has soft 17
-            dealerprob[newtotal - 17] += probability;
+            dealerprob[besttotal - 17] += newProbability;
         } else {
             // dealer has 16 or less and must hit
-            dealer(newtotal, newace, numcards + 1, probability, deck, dealerprob);
+            dealer(besttotal, newace, numcards + 1, newProbability, deck, dealerprob);
         }
         deck[0]++;
         deck[nextcard]++;
